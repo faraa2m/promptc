@@ -1,0 +1,22 @@
+{
+  "name": "@promptc/cli",
+  "version": "0.0.1",
+  "description": "CLI for promptc.",
+  "license": "Apache-2.0",
+  "author": "Faraazuddin Mohammed",
+  "type": "module",
+  "main": "src/index.ts",
+  "bin": {
+    "promptc": "src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@promptc/ir": "workspace:*",
+    "@promptc/parser": "workspace:*",
+    "@promptc/passes": "workspace:*",
+    "@promptc/codegen": "workspace:*"
+  }
+}

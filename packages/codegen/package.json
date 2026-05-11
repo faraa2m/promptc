@@ -1,0 +1,17 @@
+{
+  "name": "@promptc/codegen",
+  "version": "0.0.1",
+  "description": "Codegen from promptc IR back to target output formats.",
+  "license": "Apache-2.0",
+  "author": "Faraazuddin Mohammed",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@promptc/ir": "workspace:*"
+  }
+}
