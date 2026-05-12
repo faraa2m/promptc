@@ -1,10 +1,12 @@
 name: Publish
 
-# Publish promptc packages to npm with provenance attestations via
-# Trusted Publisher OIDC. No long-lived NPM_TOKEN — npm exchanges the
-# GitHub-issued OIDC token for a short-lived publish credential at
-# publish time, and the published package carries a verifiable provenance
-# attestation that links it back to this exact workflow run.
+# Publish promptc packages to npm with provenance attestations.
+# Auth: NPM_TOKEN secret (classic granular token) — Trusted Publisher
+# OIDC requires existing packages on npm to bind; until the 5 @promptc/*
+# packages are first-published, the workflow uses NPM_TOKEN with
+# `--provenance` for the attestation. After first publish, the workflow
+# can migrate to pure OIDC by registering Trusted Publisher on npmjs.com
+# and removing the NPM_TOKEN env (see `papers/PUBLISH-AUTOMATION.md`).
 #
 # Packages (publish in dependency order — leaf first, root last):
 #   1. @promptc/ir       — IR types, no internal deps
@@ -19,11 +21,13 @@ name: Publish
 #   * workflow_dispatch — Manual lever with optional `dry_run` input.
 #
 # Setup prerequisites (one-time, see `papers/PUBLISH-AUTOMATION.md`):
-#   * npm Trusted Publisher (a.k.a. OIDC publishing) configured on
-#     npmjs.com for the @promptc org pointing at this repo + this
-#     workflow filename.
+#   * GitHub repository secret `NPM_TOKEN` — granular access token scoped
+#     to publish access on @promptc packages, generated at
+#     npmjs.com → Account → Access Tokens → Granular.
 #   * Optional: GitHub environment `npm` exists in repo settings if you
 #     want a required-reviewer manual approval gate.
+#   * Future: Trusted Publisher migration after first successful publish
+#     (delete NPM_TOKEN, register at npmjs.com/settings/<org>/packages).
 
 on:
   release:
@@ -106,7 +110,12 @@ jobs:
         # the cli last (depends on all four). Publishing out of order causes
         # `npm publish` to fail because workspace:* deps cannot be resolved
         # against the registry until the dependency is already there.
+        # NPM_TOKEN is consumed via NODE_AUTH_TOKEN (setup-node@v4 wires
+        # the .npmrc auth header from this env var). Provenance attestation
+        # signs with the GitHub OIDC token regardless of auth method.
         working-directory: packages/ir
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             npm publish --access public --provenance --dry-run
@@ -116,6 +125,8 @@ jobs:
 
       - name: Publish @promptc/parser
         working-directory: packages/parser
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             npm publish --access public --provenance --dry-run
@@ -125,6 +136,8 @@ jobs:
 
       - name: Publish @promptc/passes
         working-directory: packages/passes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             npm publish --access public --provenance --dry-run
@@ -134,6 +147,8 @@ jobs:
 
       - name: Publish @promptc/codegen
         working-directory: packages/codegen
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             npm publish --access public --provenance --dry-run
@@ -143,6 +158,8 @@ jobs:
 
       - name: Publish @promptc/cli
         working-directory: packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             npm publish --access public --provenance --dry-run
