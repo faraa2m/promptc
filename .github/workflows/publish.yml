@@ -83,15 +83,18 @@ jobs:
       - name: Install dependencies (bun)
         run: bun install --frozen-lockfile
 
+      - name: Build all packages
+        # MUST run before Test: cross-package imports (parser → ir, passes → ir,
+        # codegen → ir, cli → all four) all resolve via `package.json#main` →
+        # `dist/index.js`. Without dist/ populated first, `bun test` fails with
+        # `Cannot find module '@promptc/<dep>'` inside the cli/parser/passes
+        # test suites. `bun run --filter '*' build` invokes `tsc -p
+        # tsconfig.json` per workspace package.
+        run: bun run --filter '*' build
+
       - name: Test
         # Real `bun test`, not the smoke fallback. Failing tests block publish.
         run: bun test
-
-      - name: Build all packages
-        # `bun run --filter '*' build` invokes `tsc -p tsconfig.json` per
-        # workspace package; produces the compiled JS that ships in each
-        # tarball.
-        run: bun run --filter '*' build
 
       - name: Normalize manifests (`npm pkg fix`)
         # Catches common manifest issues (bin permissions, repository field
