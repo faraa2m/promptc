@@ -5,13 +5,23 @@
   "license": "Apache-2.0",
   "author": "Faraazuddin Mohammed",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/faraa2m/promptc.git",
+    "directory": "packages/passes"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "bun test"
   },
   "dependencies": {
-    "@promptc/ir": "workspace:*"
+    "@promptc/ir": "^0.0.1"
   }
 }
