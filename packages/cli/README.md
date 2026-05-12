@@ -21,6 +21,13 @@ Reader-facing docs:
 
 ## Install
 
+> **Runtime**: `@promptc/cli` requires [Bun](https://bun.sh) (>= 1.1.0). The
+> binary's shebang is `#!/usr/bin/env bun` and the implementation uses
+> `Bun.file()` / `Bun.write()` for input/output. Node.js is not supported as
+> the CLI runtime; the library packages (`@promptc/ir`, `@promptc/parser`,
+> `@promptc/passes`, `@promptc/codegen`) are runtime-agnostic and work on
+> both.
+
 ```bash
 bun add -D @promptc/cli
 ```

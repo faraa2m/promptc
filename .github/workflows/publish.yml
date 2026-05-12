@@ -1,0 +1,169 @@
+name: Publish
+
+# Publish promptc packages to npm with provenance attestations.
+# Auth: NPM_TOKEN secret (classic granular token) — Trusted Publisher
+# OIDC requires existing packages on npm to bind; until the 5 @promptc/*
+# packages are first-published, the workflow uses NPM_TOKEN with
+# `--provenance` for the attestation. After first publish, migrate to
+# pure OIDC by registering a Trusted Publisher on npmjs.com (Settings →
+# Organizations → @promptc → Packages → Trusted Publishers) and
+# deleting the NPM_TOKEN secret.
+#
+# Packages (publish in dependency order — leaf first, root last):
+#   1. @promptc/ir       — IR types, no internal deps
+#   2. @promptc/parser   — depends on @promptc/ir
+#   3. @promptc/passes   — depends on @promptc/ir
+#   4. @promptc/codegen  — depends on @promptc/ir
+#   5. @promptc/cli      — depends on ir + parser + passes + codegen
+#
+# Triggers:
+#   * release.published — Recommended. Cut a GitHub Release tagged
+#     `v<version>` matching every workspace package's `package.json#version`.
+#   * workflow_dispatch — Manual lever with optional `dry_run` input.
+#
+# Setup prerequisites (one-time):
+#   * GitHub repository secret `NPM_TOKEN` — granular access token scoped
+#     to publish access on @promptc packages, generated at
+#     https://www.npmjs.com/settings/<your-user>/tokens → Generate New Token
+#     → Granular Access Token.
+#   * Optional: GitHub environment `npm` exists in repo settings if you
+#     want a required-reviewer manual approval gate.
+#   * Future: Trusted Publisher migration after first successful publish.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Pack + verify only, do not call `npm publish`."
+        type: boolean
+        default: false
+
+concurrency:
+  group: publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to npm (OIDC + provenance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@promptc/cli
+    permissions:
+      # OIDC token for Trusted Publisher exchange AND for provenance
+      # attestation signing. Both require `id-token: write`.
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.1.0"
+
+      - name: Setup Node (for `npm publish`)
+        # bun handles install + test + build; npm handles publish (provenance
+        # flag + OIDC exchange). Node 20+ is required for npm provenance.
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (bun)
+        run: bun install --frozen-lockfile
+
+      - name: Test
+        # Real `bun test`, not the smoke fallback. Failing tests block publish.
+        run: bun test
+
+      - name: Build all packages
+        # `bun run --filter '*' build` invokes `tsc -p tsconfig.json` per
+        # workspace package; produces the compiled JS that ships in each
+        # tarball.
+        run: bun run --filter '*' build
+
+      - name: Normalize manifests (`npm pkg fix`)
+        # Catches common manifest issues (bin permissions, repository field
+        # shape, etc.) before npm rejects them at publish time.
+        run: |
+          npm pkg fix --workspaces || true
+
+      - name: Show planned publish manifest
+        # Dry-run pack each package, print file list + tarball size. Easy to
+        # scan for accidentally-included secrets or huge artifacts.
+        run: |
+          for pkg in packages/ir packages/parser packages/passes packages/codegen packages/cli; do
+            echo "=== $pkg ==="
+            (cd "$pkg" && npm pack --dry-run --json) | tee
+          done
+
+      - name: Publish @promptc/ir
+        # Strict dependency order: leaves first (ir has no internal deps),
+        # then everything that depends on ir (parser, passes, codegen), then
+        # the cli last (depends on all four). Publishing out of order causes
+        # `npm publish` to fail because workspace:* deps cannot be resolved
+        # against the registry until the dependency is already there.
+        # NPM_TOKEN is consumed via NODE_AUTH_TOKEN (setup-node@v4 wires
+        # the .npmrc auth header from this env var). Provenance attestation
+        # signs with the GitHub OIDC token regardless of auth method.
+        working-directory: packages/ir
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/parser
+        working-directory: packages/parser
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/passes
+        working-directory: packages/passes
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/codegen
+        working-directory: packages/codegen
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/cli
+        working-directory: packages/cli
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
