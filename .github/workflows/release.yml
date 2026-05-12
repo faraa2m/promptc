@@ -91,3 +91,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Auto-add `--provenance` to every `npm publish` call. Combined with
+          # `id-token: write` (set at the job level), npm signs the tarball
+          # with a GitHub OIDC attestation that links it back to this workflow
+          # run. Matches the provenance guarantee the prior publish.yml gave.
+          NPM_CONFIG_PROVENANCE: "true"
