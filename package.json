@@ -13,13 +13,18 @@
     "build": "bun run --filter '*' build",
     "test": "bun run --filter '*' test",
     "lint": "bun run --filter '*' lint",
-    "eval:regression": "echo 'TODO: wire regression eval once passes + routerlab harness land'"
+    "eval:regression": "echo 'TODO: wire regression eval once passes + routerlab harness land'",
+    "changeset": "changeset",
+    "changeset:version": "changeset version",
+    "changeset:publish": "bun run --filter '*' build && changeset publish --access public --no-git-tag"
   },
   "packageManager": "bun@1.1.0",
   "engines": {
     "bun": ">=1.1.0"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
+    "@changesets/cli": "^2.31.0",
     "@types/bun": "latest",
     "typescript": "^5.5.0"
   }
