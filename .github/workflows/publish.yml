@@ -1,0 +1,151 @@
+name: Publish
+
+# Publish promptc packages to npm with provenance attestations via
+# Trusted Publisher OIDC. No long-lived NPM_TOKEN — npm exchanges the
+# GitHub-issued OIDC token for a short-lived publish credential at
+# publish time, and the published package carries a verifiable provenance
+# attestation that links it back to this exact workflow run.
+#
+# Packages (publish in dependency order — leaf first, root last):
+#   1. @promptc/ir       — IR types, no internal deps
+#   2. @promptc/parser   — depends on @promptc/ir
+#   3. @promptc/passes   — depends on @promptc/ir
+#   4. @promptc/codegen  — depends on @promptc/ir
+#   5. @promptc/cli      — depends on ir + parser + passes + codegen
+#
+# Triggers:
+#   * release.published — Recommended. Cut a GitHub Release tagged
+#     `v<version>` matching every workspace package's `package.json#version`.
+#   * workflow_dispatch — Manual lever with optional `dry_run` input.
+#
+# Setup prerequisites (one-time, see `papers/PUBLISH-AUTOMATION.md`):
+#   * npm Trusted Publisher (a.k.a. OIDC publishing) configured on
+#     npmjs.com for the @promptc org pointing at this repo + this
+#     workflow filename.
+#   * Optional: GitHub environment `npm` exists in repo settings if you
+#     want a required-reviewer manual approval gate.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Pack + verify only, do not call `npm publish`."
+        type: boolean
+        default: false
+
+concurrency:
+  group: publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Publish to npm (OIDC + provenance)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: npm
+      url: https://www.npmjs.com/package/@promptc/cli
+    permissions:
+      # OIDC token for Trusted Publisher exchange AND for provenance
+      # attestation signing. Both require `id-token: write`.
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.1.0"
+
+      - name: Setup Node (for `npm publish`)
+        # bun handles install + test + build; npm handles publish (provenance
+        # flag + OIDC exchange). Node 20+ is required for npm provenance.
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies (bun)
+        run: bun install --frozen-lockfile
+
+      - name: Test
+        # Real `bun test`, not the smoke fallback. Failing tests block publish.
+        run: bun test
+
+      - name: Build all packages
+        # `bun run --filter '*' build` invokes `tsc -p tsconfig.json` per
+        # workspace package; produces the compiled JS that ships in each
+        # tarball.
+        run: bun run --filter '*' build
+
+      - name: Normalize manifests (`npm pkg fix`)
+        # Catches common manifest issues (bin permissions, repository field
+        # shape, etc.) before npm rejects them at publish time.
+        run: |
+          npm pkg fix --workspaces || true
+
+      - name: Show planned publish manifest
+        # Dry-run pack each package, print file list + tarball size. Easy to
+        # scan for accidentally-included secrets or huge artifacts.
+        run: |
+          for pkg in packages/ir packages/parser packages/passes packages/codegen packages/cli; do
+            echo "=== $pkg ==="
+            (cd "$pkg" && npm pack --dry-run --json) | tee
+          done
+
+      - name: Publish @promptc/ir
+        # Strict dependency order: leaves first (ir has no internal deps),
+        # then everything that depends on ir (parser, passes, codegen), then
+        # the cli last (depends on all four). Publishing out of order causes
+        # `npm publish` to fail because workspace:* deps cannot be resolved
+        # against the registry until the dependency is already there.
+        working-directory: packages/ir
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/parser
+        working-directory: packages/parser
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/passes
+        working-directory: packages/passes
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/codegen
+        working-directory: packages/codegen
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
+
+      - name: Publish @promptc/cli
+        working-directory: packages/cli
+        run: |
+          if [ "${{ inputs.dry_run }}" = "true" ]; then
+            npm publish --access public --provenance --dry-run
+          else
+            npm publish --access public --provenance
+          fi
