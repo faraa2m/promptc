@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
+  "changelog": ["@changesets/changelog-github", { "repo": "faraa2m/promptc" }],
+  "commit": false,
+  "fixed": [
+    ["@promptc/ir", "@promptc/parser", "@promptc/passes", "@promptc/codegen", "@promptc/cli"]
+  ],
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",
+  "ignore": []
+}

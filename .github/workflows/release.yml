@@ -1,0 +1,98 @@
+name: Release
+
+# Changesets-driven release automation for the 5 @promptc/* packages.
+#
+# Flow:
+#   1. Contributor runs `bunx changeset` and commits the generated .md
+#      into `.changeset/` on their feature branch.
+#   2. Feature PR merges to main. This workflow detects pending changesets
+#      and opens a "Version Packages" PR that consumes them: bumps every
+#      package in the `fixed` group (.changeset/config.json) to the same
+#      version and rewrites CHANGELOG.md files.
+#   3. The Version Packages PR is reviewed and merged. This workflow runs
+#      again, this time with no pending changesets, and instead invokes
+#      `changeset:publish` — which builds all packages and runs
+#      `changeset publish` to push to npm. The changesets action then
+#      creates a single GitHub Release tagged `v<version>` covering all
+#      5 packages (because they're in the `fixed` group).
+#
+# Auth:
+#   * GITHUB_TOKEN — default workflow token, used to open the Version PR
+#     and create the GH Release.
+#   * NPM_TOKEN — granular access token with publish scope on @promptc.
+#     Same secret already consumed by publish.yml.
+#
+# Why this replaces publish.yml's release-trigger flow:
+#   publish.yml fires on `release.published` and runs `npm publish` per
+#   package. Changesets creates that release itself AFTER it publishes,
+#   so leaving publish.yml as-is would cause a duplicate publish attempt
+#   and fail with E409 "cannot publish over previously published version".
+#   This PR replaces publish.yml entirely — see PR body, option (c).
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: release-${{ github.workflow }}-${{ github.ref }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    name: Open Version PR or publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so changesets can read prior tags and write
+          # complete CHANGELOG entries.
+          fetch-depth: 0
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          # Node 20+ required for npm provenance attestations.
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build all packages
+        # Build before test (mirrors publish.yml rationale): cross-package
+        # imports resolve via dist/index.js, so test suites fail without
+        # dist/ populated first.
+        run: bun run --filter '*' build
+
+      - name: Test
+        run: bun test
+
+      - name: Run changesets action
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          # When pending changesets exist on main: opens / updates the
+          # "Version Packages" PR using this command.
+          version: bun run changeset:version
+          # When no pending changesets exist on main: builds + publishes
+          # all packages to npm using this command, then creates the
+          # GitHub Release.
+          publish: bun run changeset:publish
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Auto-add `--provenance` to every `npm publish` call. Combined with
+          # `id-token: write` (set at the job level), npm signs the tarball
+          # with a GitHub OIDC attestation that links it back to this workflow
+          # run. Matches the provenance guarantee the prior publish.yml gave.
+          NPM_CONFIG_PROVENANCE: "true"
