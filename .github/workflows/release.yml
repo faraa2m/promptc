@@ -19,8 +19,32 @@ name: Release
 # Auth:
 #   * GITHUB_TOKEN — default workflow token, used to open the Version PR
 #     and create the GH Release.
-#   * NPM_TOKEN — granular access token with publish scope on @promptc.
-#     Same secret already consumed by publish.yml.
+#   * npm Trusted Publisher (OIDC) — no long-lived NPM_TOKEN secret is
+#     used. The job requests a short-lived GitHub OIDC token via
+#     `permissions.id-token: write`; `actions/setup-node` writes an
+#     `.npmrc` pointing at registry.npmjs.org; and `npm publish` exchanges
+#     that OIDC token for a one-shot publish credential against the
+#     trusted-publisher binding configured on each npm package. The same
+#     OIDC token also signs the tarball provenance attestation
+#     (`NPM_CONFIG_PROVENANCE=true`), linking every published version back
+#     to this exact workflow run.
+#
+#   Per-package binding requirement: npm does not (yet) offer org-level
+#   Trusted Publishers, so the npm UI binding (npm package page →
+#   Settings → Publishing access → Add trusted publisher) must be
+#   configured separately on EACH of the 5 packages:
+#     @promptc/ir, @promptc/parser, @promptc/passes, @promptc/codegen,
+#     @promptc/cli. Each binding points at owner `faraa2m`, repo
+#     `promptc`, workflow `release.yml`. Without all 5 bindings the
+#     `changeset publish` step will fail partway through with E403 on
+#     the first unbound package.
+#
+#   Migration motive: a granular NPM_TOKEN cannot bypass npm's
+#   "2FA required for publishing" policy that auto-attaches to packages
+#   after their first publish. Subsequent token-auth publishes against
+#   such packages fail with a misleading E404 from the registry.
+#   Trusted Publisher OIDC sidesteps the 2FA gate (OIDC is the second
+#   factor) and eliminates the secret rotation surface entirely.
 #
 # Why this replaces publish.yml's release-trigger flow:
 #   publish.yml fires on `release.published` and runs `npm publish` per
@@ -90,7 +114,11 @@ jobs:
           title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # No NPM_TOKEN: publish auth comes from the GitHub OIDC token
+          # exchanged against each package's npm Trusted Publisher binding.
+          # See the header comment for the full flow and the per-package
+          # binding requirement.
+          #
           # Auto-add `--provenance` to every `npm publish` call. Combined with
           # `id-token: write` (set at the job level), npm signs the tarball
           # with a GitHub OIDC attestation that links it back to this workflow
