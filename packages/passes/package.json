@@ -1,6 +1,6 @@
 {
   "name": "@promptc/passes",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Deterministic optimization passes for promptc IR.",
   "license": "Apache-2.0",
   "author": "Faraazuddin Mohammed",
@@ -22,6 +22,6 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@promptc/ir": "^0.0.1"
+    "@promptc/ir": "^0.0.2"
   }
 }

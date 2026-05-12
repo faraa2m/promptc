@@ -1,6 +1,6 @@
 {
   "name": "@promptc/cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "CLI for promptc.",
   "license": "Apache-2.0",
   "author": "Faraazuddin Mohammed",
@@ -25,9 +25,9 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@promptc/ir": "^0.0.1",
-    "@promptc/parser": "^0.0.1",
-    "@promptc/passes": "^0.0.1",
-    "@promptc/codegen": "^0.0.1"
+    "@promptc/ir": "^0.0.2",
+    "@promptc/parser": "^0.0.2",
+    "@promptc/passes": "^0.0.2",
+    "@promptc/codegen": "^0.0.2"
   }
 }
