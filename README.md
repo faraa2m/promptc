@@ -1,6 +1,6 @@
 # promptc
 
-> A deterministic, LM-free compiler for prompts as an AST/IR.
+> A deterministic, LM-free compiler for prompts modelled as an AST/IR.
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![npm](https://img.shields.io/badge/npm-%40promptc%2Fcli-pending-lightgrey.svg)](https://www.npmjs.com/package/@promptc/cli)
