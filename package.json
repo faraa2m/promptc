@@ -16,7 +16,7 @@
     "eval:regression": "echo 'TODO: wire regression eval once passes + routerlab harness land'",
     "changeset": "changeset",
     "changeset:version": "changeset version",
-    "changeset:publish": "bun run --filter '*' build && changeset publish --access public --no-git-tag"
+    "changeset:publish": "bun run --filter '*' build && changeset publish --no-git-tag"
   },
   "packageManager": "bun@1.1.0",
   "engines": {
