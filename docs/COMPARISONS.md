@@ -50,7 +50,7 @@ currently holds this position.
 | **per-pass preconditions / postconditions** | **yes (formal)** | no (search space) | no | no | no |
 | **per-pass behavior-preservation eval** | **yes (paired bootstrap on crisp tasks)** | end-to-end task accuracy only | end-to-end task accuracy only | task-level F1 (lossy by design) | none |
 | **best regime** | structural prompt simplification with preserved behavior | exploring large prompt-program spaces | compiling LM-driven pipelines from labeled data | long-context budget compression | quick AI-coding session cleanup |
-| **bibliographic** | arXiv preprint forthcoming | arXiv:2404.02319 | arXiv:2310.03714 | arXiv:2403.12968 | github.com/reprompt-dev |
+| **bibliographic** | GitHub repo | arXiv:2404.02319 | arXiv:2310.03714 | arXiv:2403.12968 | github.com/reprompt-dev |
 | **license** | Apache-2.0 | MIT | Apache-2.0 | MIT | MIT |
 
 ## Per-tool sketch

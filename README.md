@@ -3,7 +3,7 @@
 > A deterministic, LM-free compiler for prompts modelled as an AST/IR.
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
-[![npm](https://img.shields.io/badge/npm-%40promptc%2Fcli-pending-lightgrey.svg)](https://www.npmjs.com/package/@promptc/cli)
+[![npm @promptc/cli](https://img.shields.io/npm/v/@promptc/cli.svg?label=@promptc/cli)](https://www.npmjs.com/package/@promptc/cli)
 [![CI](https://github.com/faraa2m/promptc/actions/workflows/ci.yml/badge.svg)](https://github.com/faraa2m/promptc/actions/workflows/ci.yml)
 
 `promptc` parses a prompt into a typed intermediate representation, runs a
@@ -72,6 +72,10 @@ workspace packages.
 
 - [**Quickstart**](./docs/QUICKSTART.md) — 5-minute tutorial, install through
   first optimized prompt.
+- [**Adoption**](./docs/ADOPTION.md) — CI, build-step, and team rollout
+  patterns for prompt repositories.
+- [**Benchmarks**](./docs/BENCHMARKS.md) — before/after examples with token
+  savings and behavior-preservation checks.
 - [**Passes**](./docs/PASSES.md) — per-pass deep dive: preconditions,
   postconditions, behavior-preservation argument, when to disable.
 - [**IR**](./docs/IR.md) — the typed `PromptIR` for library consumers.
@@ -150,6 +154,9 @@ See [`docs/COMPARISONS.md`](./docs/COMPARISONS.md) for the 2x2 placement.
 
 Early / pre-release. The IR, parsers, passes, and CLI are functional and
 tested but should be considered v0.x. Expect breaking changes until v0.1.0.
+Packages are published under the `@promptc/*` npm scope; this repo's docs and
+examples describe how to adopt those published packages without requiring a
+source checkout.
 
 ## Reproducing benchmarks
 
@@ -166,7 +173,7 @@ bun run eval:regression   # paired-bootstrap behavior-preservation harness
   author       = {Faraazuddin Mohammed},
   title        = {{promptc}: A Compiler for Cost-Aware Prompt Optimization},
   year         = {2026},
-  note         = {Preprint forthcoming}
+  howpublished = {\url{https://github.com/faraa2m/promptc}}
 }
 ```
 

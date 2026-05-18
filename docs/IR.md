@@ -213,9 +213,7 @@ interface PassLogEntry {
 
 The `passLog` lets you trace the exact sequence of passes that produced a
 final IR. Useful for debugging, for reproducing a compiled prompt, and for
-the empirical evidence corpus
-([promptc-corpus](https://huggingface.co/datasets/faraa2m/promptc-corpus)
-— forthcoming, DESIGN.md §7).
+internal empirical evidence corpora.
 
 ## Consuming the IR
 
